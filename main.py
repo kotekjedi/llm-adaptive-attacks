@@ -52,7 +52,8 @@ def main(args):
     
     tokenizer, max_token_value = targetLM.model.tokenizer, targetLM.model.tokenizer.vocab_size
     
-    with open("../harmful_behaviors/400_behaviors.csv", 'r', encoding='utf-8') as f:
+    print(os.listdir())
+    with open("/home/apanfilov/jailbreak_filter/llm-adaptive-attacks/harmful_behaviors/400_behaviors.csv", 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
 
         behaviors = list(reader)
@@ -64,7 +65,7 @@ def main(args):
     context_str = behavior_dict["ContextString"]
     behavior_id = behavior_dict["BehaviorID"]
 
-    with open("../harmful_behaviors/400_behavior_to_target_simple.json", "r", encoding="utf-8") as file:
+    with open("/home/apanfilov/jailbreak_filter/llm-adaptive-attacks/harmful_behaviors/400_behavior_to_target_simple.json", "r", encoding="utf-8") as file:
         behavior_id_to_target = json.load(file)
     target = behavior_id_to_target[behavior_id]
     behavior += " "
