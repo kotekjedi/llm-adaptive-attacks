@@ -1,16 +1,26 @@
-import os
-os.environ["HF_HOME"] = "/tmlscratch/andriush/models/"
 import argparse
+import csv
+import json
+import os
 import random
 import string
-import torch
+
 import numpy as np
-from loggers import WandBLogger
-from judges import load_judge, judge_rule_based
-from language_models import GPT
-from prompts import get_universal_manual_prompt
+import torch
+
 from conversers import load_target_model
-from utils import insert_adv_string, schedule_n_to_change_fixed, schedule_n_to_change_prob, extract_logprob, early_stopping_condition
+from judges import judge_rule_based, load_judge
+from language_models import GPT
+from loggers import WandBLogger
+from prompts import get_universal_manual_prompt
+from utils import (
+    early_stopping_condition,
+    extract_logprob,
+    insert_adv_string,
+    schedule_n_to_change_fixed,
+    schedule_n_to_change_prob,
+)
+
 
 def main(args):
     random.seed(args.seed)
@@ -29,10 +39,6 @@ def main(args):
     if not args.debug:
         logger = WandBLogger(args)
 
-    # if no rephrased goal is provided
-    if args.goal_modified == "":
-        args.goal_modified = args.goal
-
     substitution_set = string.digits + string.ascii_letters + string.punctuation + ' '
     if args.prompt_template == 'icl_one_shot':  
         target_token = 'Step'  
@@ -46,6 +52,31 @@ def main(args):
     
     tokenizer, max_token_value = targetLM.model.tokenizer, targetLM.model.tokenizer.vocab_size
     
+    with open("../harmful_behaviors/400_behaviors.csv", 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+
+        behaviors = list(reader)
+        print(f"Selecting subset from [{args.index}, {args.index}]")
+        behaviors = behaviors[args.index:args.index+1]
+
+    behavior_dict = behaviors[0] 
+    behavior = behavior_dict["Behavior"]
+    context_str = behavior_dict["ContextString"]
+    behavior_id = behavior_dict["BehaviorID"]
+
+    with open("../harmful_behaviors/400_behavior_to_target_simple.json", "r", encoding="utf-8") as file:
+        behavior_id_to_target = json.load(file)
+    target = behavior_id_to_target[behavior_id]
+    behavior += " "
+    if context_str:
+        behavior = f"{context_str}\n\n---\n\n{behavior}"
+
+    # if no rephrased goal is provided
+    if args.goal_modified == "":
+        args.goal_modified = behavior
+    args.target_str = target
+    args.category = behavior_id
+
     orig_msg = get_universal_manual_prompt(args.prompt_template, args.target_str, args.goal_modified.lower())
     print(f'Original message: {orig_msg}')
 
@@ -348,7 +379,7 @@ if __name__ == '__main__':
     ############ Judge model parameters ##########
     parser.add_argument(
         "--judge-model",
-        default="gpt-4-0613",
+        default="no-judge",
         help="Name of judge model.",
         choices=["gpt-3.5-turbo-1106", "gpt-4-0613", "gpt-4-1106-preview", "no-judge"]
     )

@@ -1,0 +1,27 @@
+# Executable
+executable = /home/apanfilov/jailbreak_filter/llm-adaptive-attacks/condor_scripts/jb_calc.sh
+
+# Arguments template
+arguments = "$(index)"
+
+# Logs
+error = log/job.$(Cluster).$(Process).err
+output = log/job.$(Cluster).$(Process).out
+log = log/job.$(Cluster).$(Process).log
+
+# Compute requests
+request_memory = 32GB
+request_cpus = 4
+request_gpus = 1
+# request_memory = 150GB
+# request_cpus = 4
+# request_gpus = 4
+# requirements = (CUDACapability >= 8)
+
+# Queue jobs
+queue index from (
+    0 
+)
+queue index from (
+    1 
+)

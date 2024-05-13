@@ -1,10 +1,27 @@
-import common
-import torch
 import os
 from typing import List
-from language_models import GPT, HuggingFace
+
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from config import VICUNA_PATH, LLAMA_7B_PATH, LLAMA_13B_PATH, LLAMA_70B_PATH, LLAMA3_8B_PATH, LLAMA3_70B_PATH, GEMMA_2B_PATH, GEMMA_7B_PATH, MISTRAL_7B_PATH, MIXTRAL_7B_PATH, R2D2_PATH, PHI3_MINI_PATH, TARGET_TEMP, TARGET_TOP_P   
+
+import common
+from config import (
+    GEMMA_2B_PATH,
+    GEMMA_7B_PATH,
+    LLAMA3_8B_PATH,
+    LLAMA3_70B_PATH,
+    LLAMA_7B_PATH,
+    LLAMA_13B_PATH,
+    LLAMA_70B_PATH,
+    MISTRAL_7B_PATH,
+    MIXTRAL_7B_PATH,
+    PHI3_MINI_PATH,
+    R2D2_PATH,
+    TARGET_TEMP,
+    TARGET_TOP_P,
+    VICUNA_PATH,
+)
+from language_models import GPT, HuggingFace
 
 
 def load_target_model(args):
@@ -92,14 +109,13 @@ def load_indiv_model(model_name, device=None):
                 model_path, 
                 torch_dtype=torch.float16,
                 low_cpu_mem_usage=True, device_map="auto",
-                token=os.getenv("HF_TOKEN"),
                 trust_remote_code=True).eval()
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_path,
             use_fast=False,
-            token=os.getenv("HF_TOKEN")
         )
+        print(f"DEVICE: {model.device}")
 
         if 'llama2' in model_path.lower():
             tokenizer.pad_token = tokenizer.unk_token
