@@ -36,8 +36,8 @@ def main(args):
     # Initialize models and logger 
     targetLM = load_target_model(args)
     judgeLM = load_judge(args)
-    if not args.debug:
-        logger = WandBLogger(args)
+    # if not args.debug:
+    #     logger = WandBLogger(args)
 
     substitution_set = string.digits + string.ascii_letters + string.punctuation + ' '
     if args.prompt_template == 'icl_one_shot':  
