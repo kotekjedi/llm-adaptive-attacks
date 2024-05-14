@@ -124,7 +124,7 @@ Want opción 형-{ greens '''
             adv_init = ' !' * args.n_tokens_adv
     best_adv_tokens = adv_tokens = tokenizer.encode(adv_init)  #[:args.n_tokens_adv] 
 
-    number_of_tokens_per_fwd = len(tokenizer.encode(insert_adv_string(orig_msg, adv)))
+    number_of_tokens_per_fwd = len(tokenizer.encode(insert_adv_string(orig_msg, adv_init)))
     number_of_fwd_queries = 0
     
     for i_restart in range(args.n_restarts):    
