@@ -12,6 +12,7 @@ from conversers import load_target_model
 from judges import judge_rule_based, load_judge
 from language_models import GPT
 from loggers import WandBLogger
+from ppl_filter import Filter
 from prompts import get_universal_manual_prompt
 from utils import (
     early_stopping_condition,
@@ -38,6 +39,8 @@ def main(args):
     judgeLM = load_judge(args)
     if not args.debug:
         logger = WandBLogger(args)
+    
+    jbFilter = Filter()
 
     substitution_set = string.digits + string.ascii_letters + string.punctuation + ' '
     if args.prompt_template == 'icl_one_shot':  
@@ -126,7 +129,7 @@ Want opción 형-{ greens '''
 
     number_of_tokens_per_fwd = len(tokenizer.encode(insert_adv_string(orig_msg, adv_init)))
     number_of_fwd_queries = 0
-    
+    filter_passed = False
     for i_restart in range(args.n_restarts):    
         early_stop_rs = False
         n_chars_change, n_tokens_change = args.n_chars_change_max, args.n_tokens_change_max
@@ -142,7 +145,7 @@ Want opción 형-{ greens '''
                 output = targetLM.get_response([msg], max_n_tokens=1)[0] 
                 logprob_dict = output['logprobs'][0]
                 logprob = extract_logprob(logprob_dict, target_token)
-            else:  # early stopping criterion (important for query/token efficiency)
+            elif filter_passed:  # early stopping criterion (important for query/token efficiency)
                 temperature = 0.0 if args.determinstic_jailbreak else 1.0
                 # we want to keep exploring when --determinstic_jailbreak=False since get_response() also updates logprobs
                 msg_early_stop = best_msg if args.determinstic_jailbreak else msg  
@@ -200,8 +203,19 @@ Want opción 형-{ greens '''
                 substitution_tokens = np.random.randint(0, max_token_value, n_tokens_change).tolist()
                 adv_tokens = adv_tokens[:substitute_pos_start] + substitution_tokens + adv_tokens[substitute_pos_start+n_tokens_change:]
                 adv = tokenizer.decode(adv_tokens).replace('<s>', '')  # somehow, the R2D2 tokenizer inserts '<s>' at the first position
-            # apply the new adversarial suffix
-            msg = insert_adv_string(orig_msg, adv) 
+            # apply the new adversarial suffix if it passes the filter
+            
+            temp_msg = insert_adv_string(orig_msg, adv)
+            if not jbFilter.apply_filter(temp_msg, args.filter_window_size, "perplexity", args.filter_threshold):
+                msg = temp_msg
+                filter_passed = True
+            else:
+                print(f"Filtering out the adversarial string: {adv}")
+                adv, adv_tokens = best_adv, best_adv_tokens
+                msg = best_msg
+                continue
+            
+            # msg = insert_adv_string(orig_msg, adv) 
 
             number_of_fwd_queries += 1
 
@@ -441,6 +455,8 @@ if __name__ == '__main__':
     parser.add_argument('--determinstic-jailbreak', action=argparse.BooleanOptionalAction)
     parser.add_argument('--eval-only-rs', action=argparse.BooleanOptionalAction)
     parser.add_argument('--debug', action=argparse.BooleanOptionalAction)
+    parser.add_argument('--filter_window_size', type=int, default=20)
+    parser.add_argument('--filter_threshold', type=float, default=0.5)
     
     args = parser.parse_args()
 
