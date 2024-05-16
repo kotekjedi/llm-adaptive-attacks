@@ -160,7 +160,7 @@ Want opción 형-{ greens '''
                     judge_n_calls += 1
                     if jailbroken_judge_llm:
                         early_stop_rs = True
-
+            print("output: ", output)
             print(f'it={it} [best] logprob={best_logprob:.3f} prob={np.exp(best_logprob):.5f}  [curr] logprob={logprob:.3f} prob={np.exp(logprob):.5f}  len_adv={len(best_adv)}/{len(best_adv_tokens)} n_change={n_chars_change}/{n_tokens_change}: {adv}')
             if logprob > best_logprob:
                 best_logprob, best_msg, best_adv, best_adv_tokens = logprob, msg, adv, adv_tokens
