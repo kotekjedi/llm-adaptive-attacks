@@ -4,6 +4,7 @@ import json
 import os
 import random
 import string
+import time
 
 import numpy as np
 import torch
@@ -126,7 +127,7 @@ Want opción 형-{ greens '''
 
     number_of_tokens_per_fwd = len(tokenizer.encode(insert_adv_string(orig_msg, adv_init)))
     number_of_fwd_queries = 0
-    
+    start_time = time.time()
     for i_restart in range(args.n_restarts):    
         early_stop_rs = False
         n_chars_change, n_tokens_change = args.n_chars_change_max, args.n_tokens_change_max
@@ -275,6 +276,7 @@ Want opción 형-{ greens '''
             'best_msg': best_msg,
             'best_logprobs': best_logprobs,
             'best_advs': best_advs,
+            'time': time.time() - start_time,
         })
     if not args.debug: logger.finish()
 
