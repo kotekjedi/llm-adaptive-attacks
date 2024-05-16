@@ -162,7 +162,7 @@ Want opción 형-{ greens '''
                     if jailbroken_judge_llm:
                         early_stop_rs = True
                 check_the_best = False
-                print("output: ", output)
+                print("output: ", final_response_text)
 
             print(f'it={it} [best] logprob={best_logprob:.3f} prob={np.exp(best_logprob):.5f}  [curr] logprob={logprob:.3f} prob={np.exp(logprob):.5f}  len_adv={len(best_adv)}/{len(best_adv_tokens)} n_change={n_chars_change}/{n_tokens_change}: {adv}')
             if logprob > best_logprob:
