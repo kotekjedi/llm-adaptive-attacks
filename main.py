@@ -128,6 +128,7 @@ Want opción 형-{ greens '''
     number_of_tokens_per_fwd = len(tokenizer.encode(insert_adv_string(orig_msg, adv_init)))
     number_of_fwd_queries = 0
     start_time = time.time()
+    check_the_best = False
     for i_restart in range(args.n_restarts):    
         early_stop_rs = False
         n_chars_change, n_tokens_change = args.n_chars_change_max, args.n_tokens_change_max
@@ -139,7 +140,7 @@ Want opción 형-{ greens '''
         
         for it in range(1, args.n_iterations + 1):
             # note: to avoid an extra call to get_response(), for args.determinstic_jailbreak==True, the logprob_dict from the previous iteration is used 
-            if not early_stopping_condition(best_logprobs, targetLM, logprob_dict, target_token, args.determinstic_jailbreak):  
+            if not early_stopping_condition(best_logprobs, targetLM, logprob_dict, target_token, args.determinstic_jailbreak) and not check_the_best:  
                 output = targetLM.get_response([msg], max_n_tokens=1)[0] 
                 logprob_dict = output['logprobs'][0]
                 logprob = extract_logprob(logprob_dict, target_token)
@@ -160,10 +161,14 @@ Want opción 형-{ greens '''
                     judge_n_calls += 1
                     if jailbroken_judge_llm:
                         early_stop_rs = True
-            print("output: ", output)
+                check_the_best = False
+                print("output: ", output)
+
             print(f'it={it} [best] logprob={best_logprob:.3f} prob={np.exp(best_logprob):.5f}  [curr] logprob={logprob:.3f} prob={np.exp(logprob):.5f}  len_adv={len(best_adv)}/{len(best_adv_tokens)} n_change={n_chars_change}/{n_tokens_change}: {adv}')
             if logprob > best_logprob:
                 best_logprob, best_msg, best_adv, best_adv_tokens = logprob, msg, adv, adv_tokens
+                if it > 50:
+                    check_the_best = True
             else:
                 adv, adv_tokens = best_adv, best_adv_tokens
             best_logprobs.append(best_logprob)
