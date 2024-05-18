@@ -60,7 +60,8 @@ def main(args):
         behaviors = list(reader)
         print(f"Selecting subset from [{args.index}, {args.index}]")
         behaviors = behaviors[args.index:args.index+1]
-
+    if len(behaviors) > 1:
+        raise ValueError("Only one behavior should be selected")
     behavior_dict = behaviors[0] 
     behavior = behavior_dict["Behavior"]
     context_str = behavior_dict["ContextString"]
@@ -282,6 +283,8 @@ Want opción 형-{ greens '''
             'best_logprobs': best_logprobs,
             'best_advs': best_advs,
             'time': time.time() - start_time,
+            "behavior": behavior,
+            "behavior_id": behavior_id,
         })
     if not args.debug: logger.finish()
 
