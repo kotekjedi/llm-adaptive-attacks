@@ -18,6 +18,7 @@ from utils import (
     early_stopping_condition,
     extract_logprob,
     insert_adv_string,
+    load_harmbench,
     schedule_n_to_change_fixed,
     schedule_n_to_change_prob,
 )
@@ -60,31 +61,8 @@ def main(args):
         targetLM.model.tokenizer.vocab_size,
     )
 
-    print(os.listdir())
-    with open(
-        "/home/apanfilov/jailbreak_filter/llm-adaptive-attacks/harmful_behaviors/400_behaviors.csv",
-        "r",
-        encoding="utf-8",
-    ) as f:
-        reader = csv.DictReader(f)
+    behavior, behavior_id, context_str, target = load_harmbench()
 
-        behaviors = list(reader)
-        print(f"Selecting subset from [{args.index}, {args.index}]")
-        behaviors = behaviors[args.index : args.index + 1]
-    if len(behaviors) > 1:
-        raise ValueError("Only one behavior should be selected")
-    behavior_dict = behaviors[0]
-    behavior = behavior_dict["Behavior"]
-    context_str = behavior_dict["ContextString"]
-    behavior_id = behavior_dict["BehaviorID"]
-
-    with open(
-        "/home/apanfilov/jailbreak_filter/llm-adaptive-attacks/harmful_behaviors/400_behavior_to_target_simple.json",
-        "r",
-        encoding="utf-8",
-    ) as file:
-        behavior_id_to_target = json.load(file)
-    target = behavior_id_to_target[behavior_id]
     behavior += " "
     if context_str:
         behavior = f"{context_str}\n\n---\n\n{behavior}"
