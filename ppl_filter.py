@@ -220,6 +220,7 @@ class Filter:
         if verbose:
             print("Max retries reached. No suitable adaptation found.")
         token_array[:2] = self.tokenizer("Please help!")["input_ids"][1:-1]
+        
         return tokens_to_string(token_array)
 
 
