@@ -94,7 +94,7 @@ class Filter:
             return new_token
         
         token_array = self.tokenizer(input_text)["input_ids"]
-        sure_token = tokenizer("Sure,")["input_ids"][1]
+        sure_token = self.tokenizer("Sure,")["input_ids"][1]
         for attempt in tqdm.tqdm(range(max_retries), desc="Attempts to adapt init string", disable=not verbose):
             # Tokenize the input text using the self.tokenizer
             if isinstance(token_array[0], list):
