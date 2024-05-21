@@ -95,6 +95,10 @@ class Filter:
             return new_token
 
         token_array = self.tokenizer(input_text)["input_ids"]
+
+        # set two first tokens to "Please help!"
+        token_array = self.tokenizer(input_text)["input_ids"]
+
         for attempt in tqdm.tqdm(
             range(max_retries),
             desc="Attempts to adapt init string",
@@ -121,6 +125,8 @@ class Filter:
             if not self.is_jailbreak(metrics_dict[metric_name], threshold):
                 if verbose:
                     print(f"Input text passes the filter after {attempt + 1} attempts.")
+
+                token_array[:2] = self.tokenizer("Please help!")["input_ids"][1:-1]
                 return tokens_to_string(token_array)
 
             if attempt == 0:
@@ -213,6 +219,7 @@ class Filter:
 
         if verbose:
             print("Max retries reached. No suitable adaptation found.")
+        token_array[:2] = self.tokenizer("Please help!")["input_ids"][1:-1]
         return tokens_to_string(token_array)
 
 
