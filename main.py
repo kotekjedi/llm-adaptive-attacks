@@ -18,6 +18,7 @@ from utils import (
     early_stopping_condition,
     extract_logprob,
     insert_adv_string,
+    load_advbench,
     load_harmbench,
     schedule_n_to_change_fixed,
     schedule_n_to_change_prob,
@@ -61,11 +62,8 @@ def main(args):
         targetLM.model.tokenizer.vocab_size,
     )
 
-    behavior, behavior_id, context_str, target = load_harmbench()
-
-    behavior += " "
-    if context_str:
-        behavior = f"{context_str}\n\n---\n\n{behavior}"
+    behavior, behavior_id, target = load_harmbench(args.index)
+    # behavior, behavior_id, target = load_advbench(args.index)
 
     # if no rephrased goal is provided
     if args.goal_modified == "":
@@ -181,25 +179,8 @@ Want opción 형-{ greens '''
                 print("output: ", final_response_text)
                 logger.log(
                     {
-                        "noadv_response_text": noadv_response_text,
-                        "orig_response_text": orig_response_text,
                         "final_response_text": final_response_text,
                         "llm_judge_score": llm_judge_score,
-                        "start_with_sure_noadv": noadv_response_text.strip().startswith(
-                            target_token
-                        ),
-                        "start_with_sure_standard": orig_response_text.strip().startswith(
-                            target_token
-                        ),
-                        "start_with_sure_adv": final_response_text.strip().startswith(
-                            target_token
-                        ),
-                        "jailbroken_noadv_judge_llm": jailbroken_noadv_judge_llm,
-                        "jailbroken_noadv_judge_rule": jailbroken_noadv_judge_rule,
-                        "jailbroken_orig_judge_llm": jailbroken_orig_judge_llm,
-                        "jailbroken_orig_judge_rule": jailbroken_orig_judge_rule,
-                        "jailbroken_judge_llm": jailbroken_judge_llm,
-                        "jailbroken_judge_rule": jailbroken_judge_rule,
                         "n_input_chars": targetLM.n_input_chars,
                         "n_output_chars": targetLM.n_output_chars,
                         "n_input_tokens": targetLM.n_input_tokens,

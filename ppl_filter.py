@@ -1,9 +1,11 @@
+import random
 import time
 from collections import Counter
 
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import tqdm
 from transformers import AutoTokenizer
 
 
@@ -45,13 +47,13 @@ class Filter:
         self.unigrams_dict = process_parquet_to_dict(unigram_parquet_path, "unigram")
         self.bigrams_dict = process_parquet_to_dict(bigram_parquet_path, "bigram")
 
-    def is_jailbroken(self, metric, threshold):
+    def is_jailbreak(self, metric, threshold):
         return any(value < threshold for value in metric)
 
     def apply_filter(self, input_text, window_size, metric_name, threshold):
         token_array = self.tokenizer(input_text)["input_ids"]
         if type(token_array[0]) == list:
-            token_array = token_array[0] 
+            token_array = token_array[0]
 
         metrics_dict = calculate_metrics(
             token_array,
@@ -65,7 +67,153 @@ class Filter:
             num_bigrams=len(self.bigrams_dict),
         )
 
-        return self.is_jailbroken(metrics_dict[metric_name], threshold)
+        return self.is_jailbreak(metrics_dict[metric_name], threshold)
+
+    def check_adv_init(
+        self,
+        input_text,
+        window_size,
+        metric_name,
+        threshold,
+        max_retries=10000,
+        verbose=False,
+    ):
+        def tokens_to_string(tokens):
+            """Convert a list of tokens back to a string using the tokenizer's vocab dictionary."""
+            id_to_string = {v: k for k, v in self.tokenizer.vocab.items()}
+            return "".join(
+                id_to_string[token] for token in tokens if token in id_to_string
+            )
+
+        def mutate_token(token_array, idx, tokenizer):
+            """Mutate the token at the given index by randomly choosing a different token."""
+            possible_tokens = list(tokenizer.vocab.values())
+            current_token = token_array[idx]
+            new_token = current_token
+            while new_token == current_token:
+                new_token = np.random.choice(possible_tokens)
+            return new_token
+
+        token_array = self.tokenizer(input_text)["input_ids"]
+        for attempt in tqdm.tqdm(
+            range(max_retries),
+            desc="Attempts to adapt init string",
+            disable=not verbose,
+        ):
+            # Tokenize the input text using the self.tokenizer
+            if isinstance(token_array[0], list):
+                token_array = token_array[0]
+
+            # Calculate metrics using the self.tokenizer
+            metrics_dict = calculate_metrics(
+                token_array,
+                window_size,
+                bigram_probs=self.bigrams_dict,
+                unigram_probs=self.unigrams_dict,
+                cond_probs=None,
+                all_unigrams_count=self.all_unigrams_count,
+                all_bigrams_count=self.all_bigrams_count,
+                num_unigrams=len(self.unigrams_dict),
+                num_bigrams=len(self.bigrams_dict),
+            )
+
+            # Check if the input text passes the filter
+            if not self.is_jailbreak(metrics_dict[metric_name], threshold):
+                if verbose:
+                    print(f"Input text passes the filter after {attempt + 1} attempts.")
+                return tokens_to_string(token_array)
+
+            if attempt == 0:
+                # Calculate overall perplexity for the entire input
+                window_bigrams = [
+                    (token_array[j - 1], token_array[j])
+                    for j in range(1, len(token_array))
+                ]
+                window_unigrams = [
+                    (token_array[j - 1],) for j in range(1, len(token_array))
+                ]
+
+                window_uncond_probs_2 = [
+                    smooth_ngram_probability(
+                        self.bigrams_dict,
+                        bigram,
+                        self.all_bigrams_count,
+                        len(self.bigrams_dict),
+                    )
+                    for bigram in window_bigrams
+                ]
+                window_uncond_probs_1 = [
+                    smooth_ngram_probability(
+                        self.unigrams_dict,
+                        unigram,
+                        self.all_unigrams_count,
+                        len(self.unigrams_dict),
+                    )
+                    for unigram in window_unigrams
+                ]
+                window_cond_probs = [
+                    bigram_prob / unigram_prob
+                    for bigram_prob, unigram_prob in zip(
+                        window_uncond_probs_2, window_uncond_probs_1
+                    )
+                ]
+
+            # Find the token with the lowest conditional probability
+            min_prob_idx = np.argmin(window_cond_probs)
+
+            # Attempt to mutate the token and check conditional probabilities
+            original_token = token_array[min_prob_idx]
+            token_array[min_prob_idx] = mutate_token(
+                token_array, min_prob_idx, self.tokenizer
+            )
+
+            # Recalculate probabilities for the mutated token and its neighbors
+            new_window_bigrams = [
+                (token_array[j - 1], token_array[j]) for j in range(1, len(token_array))
+            ]
+            new_window_unigrams = [
+                (token_array[j - 1],) for j in range(1, len(token_array))
+            ]
+
+            new_window_uncond_probs_2 = [
+                smooth_ngram_probability(
+                    self.bigrams_dict,
+                    bigram,
+                    self.all_bigrams_count,
+                    len(self.bigrams_dict),
+                )
+                for bigram in new_window_bigrams
+            ]
+            new_window_uncond_probs_1 = [
+                smooth_ngram_probability(
+                    self.unigrams_dict,
+                    unigram,
+                    self.all_unigrams_count,
+                    len(self.unigrams_dict),
+                )
+                for unigram in new_window_unigrams
+            ]
+            new_window_cond_probs = [
+                bigram_prob / unigram_prob
+                for bigram_prob, unigram_prob in zip(
+                    new_window_uncond_probs_2, new_window_uncond_probs_1
+                )
+            ]
+
+            # Check if the conditional probabilities have increased
+            if sum(new_window_cond_probs) > sum(window_cond_probs):
+                window_cond_probs = new_window_cond_probs
+                if verbose:
+                    print(f"Mutation accepted at index {min_prob_idx}.")
+            else:
+                # Revert the mutation if no improvement
+                token_array[min_prob_idx] = original_token
+                if verbose:
+                    print(f"Mutation reverted at index {min_prob_idx}.")
+
+        if verbose:
+            print("Max retries reached. No suitable adaptation found.")
+        return tokens_to_string(token_array)
 
 
 # Function to smooth n-gram probabilities
@@ -151,14 +299,21 @@ def calculate_metrics(
         unconditional_probs_1.append(np.median(window_uncond_probs_1))
         unconditional_probs_2.append(np.median(window_uncond_probs_2))
 
-    adjusted_perplexities = np.array([p / (e if e > 0 else 1) for p, e in zip(perplexities, entropies)])  # Avoid division by zero
-    weighted_cond_probs = np.array([cp * e for cp, e in zip(conditional_probs_2_1, entropies)])
-    weighted_uncond_probs_1 = np.array([up1 * e for up1, e in zip(unconditional_probs_1, entropies)])
-    weighted_uncond_probs_2 = np.array([up2 * e for up2, e in zip(unconditional_probs_2, entropies)])
-
+    adjusted_perplexities = np.array(
+        [p / (e if e > 0 else 1) for p, e in zip(perplexities, entropies)]
+    )  # Avoid division by zero
+    weighted_cond_probs = np.array(
+        [cp * e for cp, e in zip(conditional_probs_2_1, entropies)]
+    )
+    weighted_uncond_probs_1 = np.array(
+        [up1 * e for up1, e in zip(unconditional_probs_1, entropies)]
+    )
+    weighted_uncond_probs_2 = np.array(
+        [up2 * e for up2, e in zip(unconditional_probs_2, entropies)]
+    )
 
     metrics_dict = {
-        "perplexities": perplexities,
+        "perplexities": np.array(perplexities) * -1,
         "conditional_probs_2_1": conditional_probs_2_1,
         "unconditional_probs_1": unconditional_probs_1,
         "unconditional_probs_2": unconditional_probs_2,

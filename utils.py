@@ -155,7 +155,7 @@ def load_harmbench(index):
 
 def load_advbench(index):
     harmful_behaviors_df = pd.read_csv(
-        "../harmful_behaviors/harmful_behaviors_pair.csv"
+        "./harmful_behaviors/harmful_behaviors_pair.csv"
     )
 
     behavior, target = (
