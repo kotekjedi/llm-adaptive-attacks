@@ -51,7 +51,8 @@ class Filter:
         return any(value < threshold for value in metric)
 
     def apply_filter(self, input_text, window_size, metric_name, threshold):
-        token_array = self.tokenizer(input_text)["input_ids"]
+        token_array = self.tokenizer(input_text, add_special_tokens=False)["input_ids"]
+
         if type(token_array[0]) == list:
             token_array = token_array[0]
 
@@ -66,9 +67,15 @@ class Filter:
             num_unigrams=len(self.unigrams_dict),
             num_bigrams=len(self.bigrams_dict),
         )
-
         return self.is_jailbreak(metrics_dict[metric_name], threshold)
 
+    def check_token_consistency(self, tokenizer, tokens):
+            decoded_text = tokenizer.decode(tokens, add_special_tokens=False)
+            reencoded_tokens = tokenizer(decoded_text, add_special_tokens=False)[
+                "input_ids"
+            ]
+            return tokens == reencoded_tokens
+    
     def check_adv_init(
         self,
         input_text,
@@ -77,30 +84,68 @@ class Filter:
         threshold,
         max_retries=10000,
         verbose=False,
-    ):  
-        def tokens_to_string(tokens):
-            """Convert a list of tokens back to a string using the tokenizer's vocab dictionary."""
-            id_to_string = {v: k for k, v in self.tokenizer.vocab.items()}
-            return "".join(
-                id_to_string[token] for token in tokens if token in id_to_string
-            )
+    ):
         def mutate_token(token_array, idx, tokenizer):
-            """Mutate the token at the given index by randomly choosing a different token."""
-            possible_tokens = list(tokenizer.vocab.values())
+            special_token_ids = list(tokenizer.all_special_ids)
+            possible_tokens = [
+                token_id for token_id in tokenizer.get_vocab().values()
+                if (token_id not in special_token_ids)
+            ]
             current_token = token_array[idx]
             new_token = current_token
             while new_token == current_token:
                 new_token = np.random.choice(possible_tokens)
             return new_token
-        
-        token_array = self.tokenizer(input_text)["input_ids"]
-        sure_token = self.tokenizer("Sure,")["input_ids"][1]
-        for attempt in tqdm.tqdm(range(max_retries), desc="Attempts to adapt init string", disable=not verbose):
-            # Tokenize the input text using the self.tokenizer
+
+        token_array = self.tokenizer(input_text, add_special_tokens=False)["input_ids"]
+
+        metrics_dict = calculate_metrics(
+                token_array,
+                window_size,
+                bigram_probs=self.bigrams_dict,
+                unigram_probs=self.unigrams_dict,
+                cond_probs=None,
+                all_unigrams_count=self.all_unigrams_count,
+                all_bigrams_count=self.all_bigrams_count,
+                num_unigrams=len(self.unigrams_dict),
+                num_bigrams=len(self.bigrams_dict),
+        )
+
+        init_value = sum(metrics_dict[metric_name])
+
+        if isinstance(token_array[0], list):
+            token_array = token_array[0]
+
+        print(f"Initial string is consistent: {self.check_token_consistency(self.tokenizer, token_array)}")
+
+        for attempt in tqdm.tqdm(range(max_retries), desc="Attempts to adapt init string"):
             if isinstance(token_array[0], list):
                 token_array = token_array[0]
 
-            # Calculate metrics using the self.tokenizer
+            if not self.is_jailbreak(metrics_dict[metric_name], threshold) and self.check_token_consistency(self.tokenizer, token_array):
+                print(f"Input text passes the filter after {attempt + 1} attempts.")
+                return token_array
+
+            # Collect indices of windows not passing the threshold
+            failing_windows = [
+                i for i, value in enumerate(metrics_dict[metric_name])
+                if value < threshold
+            ]
+
+            if not failing_windows:
+                break
+
+            # Collect token indices within the failing windows
+            failing_indices = set()
+            for window_start in failing_windows:
+                failing_indices.update(range(window_start, window_start + window_size))
+
+            # Randomly sample from failing indices
+            sampled_idx = np.random.choice(list(failing_indices))
+
+            original_token = token_array[sampled_idx]
+            token_array[sampled_idx] = mutate_token(token_array, sampled_idx, self.tokenizer)
+
             metrics_dict = calculate_metrics(
                 token_array,
                 window_size,
@@ -112,109 +157,18 @@ class Filter:
                 num_unigrams=len(self.unigrams_dict),
                 num_bigrams=len(self.bigrams_dict),
             )
+            new_value = sum(metrics_dict[metric_name])
 
-            # Check if the input text passes the filter
-            if not self.is_jailbroken(metrics_dict[metric_name], threshold):
-                if verbose:
-                    print(f"Input text passes the filter after {attempt + 1} attempts.")
-                    
-                token_array[:2] = self.tokenizer("Please help!")["input_ids"][1:-1]
-                return tokens_to_string(token_array)
-
-            if attempt == 0:
-                # Calculate overall perplexity for the entire input
-                window_bigrams = [(token_array[j - 1], token_array[j]) for j in range(1, len(token_array))]
-                window_unigrams = [(token_array[j - 1],) for j in range(1, len(token_array))]
-        
-                window_uncond_probs_2 = [
-                    smooth_ngram_probability(
-                        self.bigrams_dict,
-                        bigram,
-                        self.all_bigrams_count,
-                        len(self.bigrams_dict),
-                    )
-                    for bigram in window_bigrams
-                ]
-                window_uncond_probs_1 = [
-                    smooth_ngram_probability(
-                        self.unigrams_dict, unigram, self.all_unigrams_count, len(self.unigrams_dict)
-                    )
-                    for unigram in window_unigrams
-                ]
-                window_cond_probs = [
-                    bigram_prob / unigram_prob
-                    for bigram_prob, unigram_prob in zip(
-                        window_uncond_probs_2, window_uncond_probs_1
-                    )
-                ]
-                sure_uncond_prob_1 = smooth_ngram_probability(
-                        self.unigrams_dict, sure_token, self.all_unigrams_count, len(self.unigrams_dict)
-                    )
-            
-                sure_uncond_prob_2 = smooth_ngram_probability(
-                        self.bigrams_dict, (token_array[-1], sure_token), self.all_bigrams_count, len(self.bigrams_dict),
-                    )
-
-                sure_prob = sure_uncond_prob_1 / sure_uncond_prob_2
-
-            new_last_token = mutate_token(token_array, -1, self.tokenizer)
-            new_sure_uncond_prob_2 = smooth_ngram_probability(
-                        self.bigrams_dict, (new_last_token, sure_token), self.all_bigrams_count, len(self.bigrams_dict),
-                    )
-            if sure_prob < (sure_uncond_prob_1 / new_sure_uncond_prob_2):
-                token_array[-1] = new_last_token
-                if verbose:
-                    print(f"Last token updated.")
-
-            # Find the token with the lowest conditional probability
-            min_prob_idx = np.argmin(window_cond_probs)
-            
-            # Attempt to mutate the token and check conditional probabilities
-            original_token = token_array[min_prob_idx]
-            token_array[min_prob_idx] = mutate_token(token_array, min_prob_idx, self.tokenizer)
-
-            # Recalculate probabilities for the mutated token and its neighbors
-            new_window_bigrams = [(token_array[j - 1], token_array[j]) for j in range(1, len(token_array))]
-            new_window_unigrams = [(token_array[j - 1],) for j in range(1, len(token_array))]
-
-            new_window_uncond_probs_2 = [
-                smooth_ngram_probability(
-                    self.bigrams_dict,
-                    bigram,
-                    self.all_bigrams_count,
-                    len(self.bigrams_dict),
-                )
-                for bigram in new_window_bigrams
-            ]
-            new_window_uncond_probs_1 = [
-                smooth_ngram_probability(
-                    self.unigrams_dict, unigram, self.all_unigrams_count, len(self.unigrams_dict)
-                )
-                for unigram in new_window_unigrams
-            ]
-            new_window_cond_probs = [
-                bigram_prob / unigram_prob
-                for bigram_prob, unigram_prob in zip(
-                    new_window_uncond_probs_2, new_window_uncond_probs_1
-                )
-            ]
-
-            # Check if the conditional probabilities have increased
-            if sum(new_window_cond_probs) > sum(window_cond_probs):
-                window_cond_probs = new_window_cond_probs
-                if verbose:
-                    print(f"Mutation accepted at index {min_prob_idx}.")
+            if new_value > init_value and self.check_token_consistency(self.tokenizer, token_array):
+                init_value = new_value
+                # if verbose:
+                #     print(f"Mutation accepted at index {sampled_idx}. New sum of cond_probs: {sum(metrics_dict['conditional_probs_2_1'])}")
             else:
-                # Revert the mutation if no improvement
-                token_array[min_prob_idx] = original_token
-                if verbose:
-                    print(f"Mutation reverted at index {min_prob_idx}.")
-                            
+                token_array[sampled_idx] = original_token
+
         if verbose:
             print("Max retries reached. No suitable adaptation found.")
-        token_array[0][:2] = self.tokenizer("Please help!")["input_ids"][1:-1]
-        return tokens_to_string(token_array)
-
+        return token_array
 
 # Function to smooth n-gram probabilities
 def smooth_ngram_probability(
