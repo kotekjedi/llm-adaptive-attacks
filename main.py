@@ -40,11 +40,6 @@ def main(args):
             "Warning: probably you want to set determinstic_jailbreak to False to leverage randomness more strongly for random restarts / reevaluations."
         )
 
-    # Initialize models and logger
-    targetLM = load_target_model(args)
-    judgeLM = load_judge(args)
-    if not args.debug:
-        logger = WandBLogger(args)
 
     substitution_set = string.digits + string.ascii_letters + string.punctuation + " "
     if args.prompt_template == "icl_one_shot":
@@ -57,11 +52,6 @@ def main(args):
         target_token = "Sure"
     n_iterations_target_not_in_topk, n_retry_final = 25, 1
 
-    tokenizer, max_token_value = (
-        targetLM.model.tokenizer,
-        targetLM.model.tokenizer.vocab_size,
-    )
-
     behavior, behavior_id, target = load_harmbench(args.index)
     # behavior, behavior_id, target = load_advbench(args.index)
 
@@ -70,6 +60,17 @@ def main(args):
         args.goal_modified = behavior
     args.target_str = target
     args.category = behavior_id
+
+    # Initialize models and logger
+    targetLM = load_target_model(args)
+    judgeLM = load_judge(args)
+    tokenizer, max_token_value = (
+        targetLM.model.tokenizer,
+        targetLM.model.tokenizer.vocab_size,
+    )
+
+    if not args.debug:
+        logger = WandBLogger(args)
 
     orig_msg = get_universal_manual_prompt(
         args.prompt_template, args.target_str, args.goal_modified.lower()
@@ -177,26 +178,6 @@ Want opción 형-{ greens '''
                         early_stop_rs = True
                 check_the_best = False
                 print("output: ", final_response_text)
-                logger.log(
-                    {
-                        "final_response_text": final_response_text,
-                        "llm_judge_score": llm_judge_score,
-                        "n_input_chars": targetLM.n_input_chars,
-                        "n_output_chars": targetLM.n_output_chars,
-                        "n_input_tokens": targetLM.n_input_tokens,
-                        "n_output_tokens": targetLM.n_output_tokens,
-                        "n_queries": it,
-                        "n_fwd_queries": number_of_fwd_queries,
-                        "n_tokens_per_fwd": number_of_tokens_per_fwd,
-                        "orig_msg": orig_msg,
-                        "best_msg": best_msg,
-                        "best_logprobs": best_logprobs,
-                        "best_advs": best_advs,
-                        "time": time.time() - start_time,
-                        "behavior": behavior,
-                        "behavior_id": behavior_id,
-                    }
-                )
 
             print(
                 f"it={it} [best] logprob={best_logprob:.3f} prob={np.exp(best_logprob):.5f}  [curr] logprob={logprob:.3f} prob={np.exp(logprob):.5f}  len_adv={len(best_adv)}/{len(best_adv_tokens)} n_change={n_chars_change}/{n_tokens_change}: {adv}"
@@ -414,12 +395,6 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="A modified goal of the conversation.",
-    )
-    parser.add_argument(
-        "--target-str",
-        type=str,
-        default="Sure, here is a tutorial for making a bomb",
-        help="Target response for the target model.",
     )
     parser.add_argument(
         "--prompt-template",

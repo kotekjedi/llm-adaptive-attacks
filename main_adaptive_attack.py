@@ -120,7 +120,6 @@ Want opción 형-{ greens '''
         else:
             adv_init = " !" * args.n_tokens_adv
     best_adv_tokens = adv_tokens = tokenizer.encode(adv_init)  # [:args.n_tokens_adv]
-    len_of_adv_tokens = len(adv_tokens[1:-1])
 
 
     number_of_tokens_per_fwd = len(
@@ -232,29 +231,6 @@ Want opción 형-{ greens '''
                 check_the_best = False
                 filter_passed = False
                 print("output: ", final_response_text)
-                logger.log(
-                    {
-                        "final_response_text": final_response_text,
-                        "llm_judge_score": llm_judge_score,
-                        "start_with_sure_adv": final_response_text.strip().startswith(
-                            target_token
-                        ),
-                        "n_input_chars": targetLM.n_input_chars,
-                        "n_output_chars": targetLM.n_output_chars,
-                        "n_input_tokens": targetLM.n_input_tokens,
-                        "n_output_tokens": targetLM.n_output_tokens,
-                        "n_queries": it,
-                        "n_fwd_queries": number_of_fwd_queries,
-                        "n_tokens_per_fwd": number_of_tokens_per_fwd,
-                        "orig_msg": orig_msg,
-                        "best_msg": best_msg,
-                        "best_logprobs": best_logprobs,
-                        "best_advs": best_advs,
-                        "time": time.time() - start_time,
-                        "behavior": behavior,
-                        "behavior_id": behavior_id,
-                    }
-                )
 
             print(
                 f"it={it} [best] logprob={best_logprob:.3f} prob={np.exp(best_logprob):.5f}  [curr] logprob={logprob:.3f} prob={np.exp(logprob):.5f}  len_adv={len(best_adv)}/{len(best_adv_tokens)} n_change={n_chars_change}/{n_tokens_change}: {adv}"
