@@ -108,7 +108,7 @@ def load_indiv_model(model_name, device=None):
         model = AutoModelForCausalLM.from_pretrained(
                 model_path, 
                 torch_dtype=torch.bfloat16,
-                low_cpu_mem_usage=True, device_map="auto",
+                device_map="cuda",
                 trust_remote_code=True).eval()
 
         tokenizer = AutoTokenizer.from_pretrained(
