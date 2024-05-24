@@ -67,7 +67,7 @@ def main(args):
     targetLM = load_target_model(args)
     judgeLM = load_judge(args)
     tokenizer, max_token_value = (
-        jbFilter.tokenizer,
+        targetLM.model.tokenizer,
         jbFilter.tokenizer.vocab_size,
     )
 
@@ -120,7 +120,7 @@ Want opción 형-{ greens '''
             adv_init = " !" * args.n_tokens_adv
         else:
             adv_init = " !" * args.n_tokens_adv
-    best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(adv_init)  # [:args.n_tokens_adv]
+    best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(adv_init, add_special_tokens=False)  # [:args.n_tokens_adv]
 
 
     number_of_tokens_per_fwd = len(
@@ -305,12 +305,15 @@ Want opción 형-{ greens '''
                 )  # somehow, the R2D2 tokenizer inserts '<s>' at the first position
             # apply the new adversarial suffix
 
+            number_of_fwd_queries += 1
+
             temp_msg = insert_adv_string(orig_msg, adv)
             if not jbFilter.apply_filter(
                 temp_msg, args.filter_window_size, "perplexities", args.filter_threshold
             ):
                 msg = temp_msg
                 filter_passed = True
+                print("Filter passed!")
             else:
                 filter_count += 1
                 print(
@@ -320,7 +323,6 @@ Want opción 형-{ greens '''
                 msg = best_msg
                 continue
 
-            number_of_fwd_queries += 1
 
         if (
             not args.eval_only_rs and i_restart == 0
@@ -428,6 +430,7 @@ Want opción 형-{ greens '''
                 "time": time.time() - start_time,
                 "behavior": behavior,
                 "behavior_id": behavior_id,
+                "filter_passed": filter_passed,
             }
         )
     if not args.debug:
