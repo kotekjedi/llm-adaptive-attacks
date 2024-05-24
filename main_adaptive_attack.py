@@ -54,8 +54,11 @@ def main(args):
     n_iterations_target_not_in_topk, n_retry_final = 25, 1
 
 
-    # behavior, behavior_id, target = load_harmbench(args.index)
-    behavior, behavior_id, target = load_advbench(args.index)
+    if args.dataset == "harmbench":
+        behavior, behavior_id, target = load_harmbench(args.index)
+    elif args.dataset == "advbench":
+        behavior, behavior_id, target = load_advbench(args.index)
+
 
     # if no rephrased goal is provided
     if args.goal_modified == "":
@@ -592,6 +595,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--eval-only-rs", action=argparse.BooleanOptionalAction)
     parser.add_argument("--debug", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--dataset", options=["harmbench", "advbench"], default="harmbench")
 
     args = parser.parse_args()
 
