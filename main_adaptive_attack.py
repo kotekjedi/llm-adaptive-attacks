@@ -321,6 +321,7 @@ Want opción 형-{ greens '''
                 )
                 adv, adv_tokens = best_adv, best_adv_tokens
                 msg = best_msg
+                filter_passed = False
                 continue
 
 
