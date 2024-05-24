@@ -67,7 +67,7 @@ def main(args):
     targetLM = load_target_model(args)
     judgeLM = load_judge(args)
     tokenizer, max_token_value = (
-        targetLM.model.tokenizer,
+        jbFilter.tokenizer,
         jbFilter.tokenizer.vocab_size,
     )
 
@@ -120,12 +120,7 @@ Want opción 형-{ greens '''
             adv_init = " !" * args.n_tokens_adv
         else:
             adv_init = " !" * args.n_tokens_adv
-    best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(adv_init, add_special_tokens=False)  # [:args.n_tokens_adv]
-
-
-    number_of_tokens_per_fwd = len(
-        tokenizer.encode(insert_adv_string(orig_msg, adv_init))
-    )
+   
     number_of_fwd_queries = 0
     start_time = time.time()
 
@@ -151,7 +146,6 @@ Want opción 형-{ greens '''
     init_retries_max = 10
     init_retries = 0
     while not filter_passed:
-        
         if init_retries >= init_retries_max:
             print("Warning: the initial adversarial string is filtered out.")
             break
@@ -183,8 +177,12 @@ Want opción 형-{ greens '''
     if not filter_passed:
         print("Warning: the initial adversarial string is filtered out.")
 
-    print(f"Initial adversarial string: {adv_init}")
-    print(f"Initial message: {insert_adv_string(orig_msg, adv_init)}")
+    best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(adv_init, add_special_tokens=False)  # [:args.n_tokens_adv]
+
+
+    number_of_tokens_per_fwd = len(
+        jbFilter.tokenizer.encode(insert_adv_string(orig_msg, adv_init))
+    )
 
     for i_restart in range(args.n_restarts):
         early_stop_rs = False
@@ -213,7 +211,12 @@ Want opción 형-{ greens '''
                 logprob_dict = output["logprobs"][0]
                 logprob = extract_logprob(logprob_dict, target_token)
             elif (
-                filter_passed
+                not jbFilter.apply_filter(
+                    best_msg if args.determinstic_jailbreak else msg,
+                    args.filter_window_size,
+                    "perplexities",
+                    args.filter_threshold,
+                )
             ):  # early stopping criterion (important for query/token efficiency)
                 print("Early stopping criterion reached.")
                 temperature = 0.0 if args.determinstic_jailbreak else 1.0
@@ -238,13 +241,12 @@ Want opción 형-{ greens '''
                     judge_n_calls += 1
                     if jailbroken_judge_llm:
                         early_stop_rs = True
-                filter_passed = False
                 print("output: ", final_response_text)
 
             print(
                 f"it={it} [best] logprob={best_logprob:.3f} prob={np.exp(best_logprob):.5f}  [curr] logprob={logprob:.3f} prob={np.exp(logprob):.5f}  len_adv={len(best_adv)}/{len(best_adv_tokens)} n_change={n_chars_change}/{n_tokens_change}: {adv}"
             )
-            if logprob > best_logprob:
+            if logprob > best_logprob and filter_passed:
                 best_logprob, best_msg, best_adv, best_adv_tokens = (
                     logprob,
                     msg,
@@ -253,6 +255,8 @@ Want opción 형-{ greens '''
                 )
             else:
                 adv, adv_tokens = best_adv, best_adv_tokens
+                msg = best_msg
+
             best_logprobs.append(best_logprob)
             best_advs.append(best_adv)
 
@@ -307,12 +311,19 @@ Want opción 형-{ greens '''
                     + substitution_tokens
                     + adv_tokens[substitute_pos_start + n_tokens_change :]
                 )
-                adv = jbFilter.tokenizer.decode(adv_tokens).replace(
+                adv = jbFilter.tokenizer.decode(adv_tokens, add_special_tokens=False).replace(
                     "<s>", ""
                 )  # somehow, the R2D2 tokenizer inserts '<s>' at the first position
             # apply the new adversarial suffix
 
             number_of_fwd_queries += 1
+
+            assert not jbFilter.apply_filter(
+                best_msg,
+                args.filter_window_size,
+                "perplexities",
+                args.filter_threshold,
+            ), "This is not supposed to happen."
 
             temp_msg = insert_adv_string(orig_msg, adv)
             if not jbFilter.apply_filter(
@@ -326,8 +337,6 @@ Want opción 형-{ greens '''
                 print(
                     f"Filtering out the adversarial string {filter_count} out of {it}"
                 )
-                adv, adv_tokens = best_adv, best_adv_tokens
-                msg = best_msg
                 filter_passed = False
                 continue
 
