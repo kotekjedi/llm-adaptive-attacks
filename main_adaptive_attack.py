@@ -147,28 +147,39 @@ Want opción 형-{ greens '''
         return 
     
 
-    adv_init_tokens = jbFilter.check_adv_init(
-        adv_init,
-        args.filter_window_size,
-        "perplexities",
-        args.filter_threshold,
-    )
-    adv_init = jbFilter.tokenizer.decode(
-        adv_init_tokens, add_special_tokens=False
-    ).replace(
-        "<s>", ""
-    )  
+    filter_passed = False
+    init_retries_max = 10
+    init_retries = 0
+    while not filter_passed:
+        
+        if init_retries >= init_retries_max:
+            print("Warning: the initial adversarial string is filtered out.")
+            break
+        init_retries += 1
+
+        adv_init_tokens = jbFilter.check_adv_init(
+                adv_init,
+                args.filter_window_size,
+                "perplexities",
+                args.filter_threshold,
+            )
+        adv_init = jbFilter.tokenizer.decode(
+            adv_init_tokens, add_special_tokens=False
+        ).replace(
+            "<s>", ""
+        )  
+
+        filter_passed = not jbFilter.apply_filter(
+            insert_adv_string(orig_msg, adv_init),
+            args.filter_window_size,
+            "perplexities",
+            args.filter_threshold,
+        )
 
     print(
             f"Pertrubted initial string is consistent: {jbFilter.check_token_consistency(jbFilter.tokenizer, adv_init_tokens)}"
         )
 
-    filter_passed = not jbFilter.apply_filter(
-        insert_adv_string(orig_msg, adv_init),
-        args.filter_window_size,
-        "perplexities",
-        args.filter_threshold,
-    )
     if not filter_passed:
         print("Warning: the initial adversarial string is filtered out.")
 
