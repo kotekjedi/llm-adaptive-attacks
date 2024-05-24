@@ -40,6 +40,7 @@ def main(args):
         print(
             "Warning: probably you want to set determinstic_jailbreak to False to leverage randomness more strongly for random restarts / reevaluations."
         )
+    jbFilter = Filter()
 
     substitution_set = string.digits + string.ascii_letters + string.punctuation + " "
     if args.prompt_template == "icl_one_shot":
@@ -66,8 +67,8 @@ def main(args):
     targetLM = load_target_model(args)
     judgeLM = load_judge(args)
     tokenizer, max_token_value = (
-        targetLM.model.tokenizer,
-        targetLM.model.tokenizer.vocab_size,
+        jbFilter.tokenizer,
+        jbFilter.tokenizer.vocab_size,
     )
 
     if not args.debug:
@@ -119,7 +120,7 @@ Want opción 형-{ greens '''
             adv_init = " !" * args.n_tokens_adv
         else:
             adv_init = " !" * args.n_tokens_adv
-    best_adv_tokens = adv_tokens = tokenizer.encode(adv_init)  # [:args.n_tokens_adv]
+    best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(adv_init)  # [:args.n_tokens_adv]
 
 
     number_of_tokens_per_fwd = len(
@@ -130,7 +131,6 @@ Want opción 형-{ greens '''
     check_the_best = False
 
     # Adapt the input s.t. it passes the filter
-    jbFilter = Filter()
     args.filter_window_size = 16
     args.filter_threshold = -4884.101617147775
 
@@ -300,7 +300,7 @@ Want opción 형-{ greens '''
                     + substitution_tokens
                     + adv_tokens[substitute_pos_start + n_tokens_change :]
                 )
-                adv = tokenizer.decode(adv_tokens).replace(
+                adv = jbFilter.tokenizer.decode(adv_tokens).replace(
                     "<s>", ""
                 )  # somehow, the R2D2 tokenizer inserts '<s>' at the first position
             # apply the new adversarial suffix
