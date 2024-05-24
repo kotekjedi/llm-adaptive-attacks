@@ -128,7 +128,6 @@ Want opción 형-{ greens '''
     )
     number_of_fwd_queries = 0
     start_time = time.time()
-    check_the_best = False
 
     # Adapt the input s.t. it passes the filter
     args.filter_window_size = 16
@@ -198,7 +197,6 @@ Want opción 형-{ greens '''
                     target_token,
                     args.determinstic_jailbreak,
                 )
-                and not check_the_best
             ):
                 output = targetLM.get_response([msg], max_n_tokens=1)[0]
                 logprob_dict = output["logprobs"][0]
@@ -206,6 +204,7 @@ Want opción 형-{ greens '''
             elif (
                 filter_passed
             ):  # early stopping criterion (important for query/token efficiency)
+                print("Early stopping criterion reached.")
                 temperature = 0.0 if args.determinstic_jailbreak else 1.0
                 # we want to keep exploring when --determinstic_jailbreak=False since get_response() also updates logprobs
                 msg_early_stop = best_msg if args.determinstic_jailbreak else msg
@@ -228,7 +227,6 @@ Want opción 형-{ greens '''
                     judge_n_calls += 1
                     if jailbroken_judge_llm:
                         early_stop_rs = True
-                check_the_best = False
                 filter_passed = False
                 print("output: ", final_response_text)
 
@@ -242,8 +240,6 @@ Want opción 형-{ greens '''
                     adv,
                     adv_tokens,
                 )
-                if it > 50:
-                    check_the_best = True
             else:
                 adv, adv_tokens = best_adv, best_adv_tokens
             best_logprobs.append(best_logprob)
