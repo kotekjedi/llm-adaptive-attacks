@@ -211,12 +211,7 @@ Want opción 형-{ greens '''
                 logprob_dict = output["logprobs"][0]
                 logprob = extract_logprob(logprob_dict, target_token)
             elif (
-                not jbFilter.apply_filter(
-                    best_msg if args.determinstic_jailbreak else msg,
-                    args.filter_window_size,
-                    "perplexities",
-                    args.filter_threshold,
-                )
+                filter_passed
             ):  # early stopping criterion (important for query/token efficiency)
                 print("Early stopping criterion reached.")
                 temperature = 0.0 if args.determinstic_jailbreak else 1.0
