@@ -52,8 +52,8 @@ def main(args):
         target_token = "Sure"
     n_iterations_target_not_in_topk, n_retry_final = 25, 1
 
-    behavior, behavior_id, target = load_harmbench(args.index)
-    # behavior, behavior_id, target = load_advbench(args.index)
+    # behavior, behavior_id, target = load_harmbench(args.index)
+    behavior, behavior_id, target = load_advbench(args.index)
 
     # if no rephrased goal is provided
     if args.goal_modified == "":
@@ -125,7 +125,6 @@ Want opción 형-{ greens '''
     )
     number_of_fwd_queries = 0
     start_time = time.time()
-    check_the_best = False
     for i_restart in range(args.n_restarts):
         early_stop_rs = False
         n_chars_change, n_tokens_change = (
@@ -148,7 +147,6 @@ Want opción 형-{ greens '''
                     target_token,
                     args.determinstic_jailbreak,
                 )
-                and not check_the_best
             ):
                 output = targetLM.get_response([msg], max_n_tokens=1)[0]
                 logprob_dict = output["logprobs"][0]
@@ -176,7 +174,6 @@ Want opción 형-{ greens '''
                     judge_n_calls += 1
                     if jailbroken_judge_llm:
                         early_stop_rs = True
-                check_the_best = False
                 print("output: ", final_response_text)
 
             print(
@@ -189,8 +186,6 @@ Want opción 형-{ greens '''
                     adv,
                     adv_tokens,
                 )
-                if it > 50:
-                    check_the_best = True
             else:
                 adv, adv_tokens = best_adv, best_adv_tokens
             best_logprobs.append(best_logprob)
