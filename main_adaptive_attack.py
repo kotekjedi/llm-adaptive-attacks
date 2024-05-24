@@ -595,7 +595,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--eval-only-rs", action=argparse.BooleanOptionalAction)
     parser.add_argument("--debug", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--dataset", options=["harmbench", "advbench"], default="harmbench")
+    parser.add_argument("--dataset", choices=["harmbench", "advbench"], default="harmbench")
 
     args = parser.parse_args()
 
