@@ -53,12 +53,10 @@ def main(args):
         target_token = "Sure"
     n_iterations_target_not_in_topk, n_retry_final = 25, 1
 
-
     if args.dataset == "harmbench":
         behavior, behavior_id, target = load_harmbench(args.index)
     elif args.dataset == "advbench":
         behavior, behavior_id, target = load_advbench(args.index)
-
 
     # if no rephrased goal is provided
     if args.goal_modified == "":
@@ -123,7 +121,7 @@ Want opción 형-{ greens '''
             adv_init = " !" * args.n_tokens_adv
         else:
             adv_init = " !" * args.n_tokens_adv
-   
+
     number_of_fwd_queries = 0
     start_time = time.time()
 
@@ -142,8 +140,9 @@ Want opción 형-{ greens '''
             {"FP": 1},
         )
         logger.finish()
-        return 
-    
+        return
+
+    adv_out_init = adv_init
     for i_restart in range(args.n_restarts):
 
         filter_passed = False
@@ -156,16 +155,14 @@ Want opción 형-{ greens '''
             init_retries += 1
 
             adv_init_tokens = jbFilter.check_adv_init(
-                    adv_init,
-                    args.filter_window_size,
-                    "perplexities",
-                    args.filter_threshold,
-                )
+                adv_out_init,
+                args.filter_window_size,
+                "perplexities",
+                args.filter_threshold,
+            )
             adv_init = jbFilter.tokenizer.decode(
                 adv_init_tokens, add_special_tokens=False
-            ).replace(
-                "<s>", ""
-            )  
+            ).replace("<s>", "")
 
             filter_passed = not jbFilter.apply_filter(
                 insert_adv_string(orig_msg, adv_init),
@@ -173,16 +170,28 @@ Want opción 형-{ greens '''
                 "perplexities",
                 args.filter_threshold,
             )
+        else:
+            if not filter_passed:
+                adv_init_tokens = jbFilter.check_adv_init(
+                    insert_adv_string(orig_msg, adv_init),
+                    args.filter_window_size,
+                    "perplexities",
+                    args.filter_threshold,
+                )[-len(adv_init_tokens) :]
+                adv_init = jbFilter.tokenizer.decode(
+                    adv_init_tokens, add_special_tokens=False
+                ).replace("<s>", "")
 
         print(
-                f"Pertrubted initial string is consistent: {jbFilter.check_token_consistency(jbFilter.tokenizer, adv_init_tokens)}"
-            )
+            f"Pertrubted initial string is consistent: {jbFilter.check_token_consistency(jbFilter.tokenizer, adv_init_tokens)}"
+        )
 
         if not filter_passed:
             print("Warning: the initial adversarial string is filtered out.")
 
-        best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(adv_init, add_special_tokens=False)  # [:args.n_tokens_adv]
-
+        best_adv_tokens = adv_tokens = jbFilter.tokenizer.encode(
+            adv_init, add_special_tokens=False
+        )  # [:args.n_tokens_adv]
 
         number_of_tokens_per_fwd = len(
             jbFilter.tokenizer.encode(insert_adv_string(orig_msg, adv_init))
@@ -201,14 +210,12 @@ Want opción 형-{ greens '''
         filter_count = 0
         for it in range(1, args.n_iterations + 1):
             # note: to avoid an extra call to get_response(), for args.determinstic_jailbreak==True, the logprob_dict from the previous iteration is used
-            if (
-                not early_stopping_condition(
-                    best_logprobs,
-                    targetLM,
-                    logprob_dict,
-                    target_token,
-                    args.determinstic_jailbreak,
-                )
+            if not early_stopping_condition(
+                best_logprobs,
+                targetLM,
+                logprob_dict,
+                target_token,
+                args.determinstic_jailbreak,
             ):
                 output = targetLM.get_response([msg], max_n_tokens=1)[0]
                 logprob_dict = output["logprobs"][0]
@@ -309,7 +316,9 @@ Want opción 형-{ greens '''
                     + substitution_tokens
                     + adv_tokens[substitute_pos_start + n_tokens_change :]
                 )
-                adv = jbFilter.tokenizer.decode(adv_tokens, add_special_tokens=False).replace(
+                adv = jbFilter.tokenizer.decode(
+                    adv_tokens, add_special_tokens=False
+                ).replace(
                     "<s>", ""
                 )  # somehow, the R2D2 tokenizer inserts '<s>' at the first position
             # apply the new adversarial suffix
@@ -330,7 +339,6 @@ Want opción 형-{ greens '''
                 )
                 filter_passed = False
                 continue
-
 
         if (
             not args.eval_only_rs and i_restart == 0
@@ -595,7 +603,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--eval-only-rs", action=argparse.BooleanOptionalAction)
     parser.add_argument("--debug", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--dataset", choices=["harmbench", "advbench"], default="harmbench")
+    parser.add_argument(
+        "--dataset", choices=["harmbench", "advbench"], default="harmbench"
+    )
 
     args = parser.parse_args()
 
