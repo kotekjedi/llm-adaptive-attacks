@@ -56,7 +56,7 @@ def main(args):
         behavior, behavior_id, target = load_harmbench(args.index)
     elif args.dataset == "advbench":
         behavior, behavior_id, target = load_advbench(args.index)
-
+    args.goal = behavior
     # if no rephrased goal is provided
     if args.goal_modified == "":
         args.goal_modified = behavior
@@ -138,7 +138,7 @@ Want opción 형-{ greens '''
         best_logprob = -np.inf
         best_logprobs, best_advs, logprob_dict = [], [], {}
         judge_n_calls = 0
-
+        
         for it in range(1, args.n_iterations + 1):
             # note: to avoid an extra call to get_response(), for args.determinstic_jailbreak==True, the logprob_dict from the previous iteration is used
             if (
