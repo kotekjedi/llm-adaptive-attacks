@@ -1,12 +1,14 @@
-import openai
-from openai import OpenAI
-import anthropic
+import gc
 import os
 import time
-import torch
-import gc
-import tiktoken
 from typing import Dict, List
+
+import anthropic
+import openai
+import tiktoken
+import torch
+from openai import OpenAI
+
 # import google.generativeai as palm
 
 
@@ -103,6 +105,8 @@ class HuggingFace:
             max_n_tokens += 1  # +1 to account for the first special token (id=29871) for llama2 models
         batch_size = len(full_prompts_list)
         vocab_size = len(self.tokenizer.get_vocab())
+        if "starling" in self.model_name.lower():
+            vocab_size -= 1
         inputs = self.tokenizer(full_prompts_list, return_tensors='pt', padding=True)
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
         input_ids = inputs["input_ids"]
@@ -125,7 +129,7 @@ class HuggingFace:
             output_ids = output_ids[:, input_ids.shape[1]:]  
         if 'llama2' in self.model_name.lower():
             output_ids = output_ids[:, 1:]  # ignore the first special token (id=29871)
-
+        
         generated_texts = self.tokenizer.batch_decode(output_ids)
         # output.scores: n_output_tokens x batch_size x vocab_size (can be counter-intuitive that batch_size doesn't go first)
         logprobs_tokens = [torch.nn.functional.log_softmax(output.scores[i_out_token], dim=-1).cpu().numpy() 
