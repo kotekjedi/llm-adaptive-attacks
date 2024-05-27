@@ -10,6 +10,7 @@ MISTRAL_7B_PATH = "mistralai/Mistral-7B-Instruct-v0.2"
 MIXTRAL_7B_PATH = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 R2D2_PATH = "cais/zephyr_7b_r2d2"
 PHI3_MINI_PATH = "microsoft/Phi-3-mini-128k-instruct"
+STARLING_PATH = "berkeley-nest/Starling-LM-7B-alpha"
 
 TARGET_TEMP = 0
 TARGET_TOP_P = 1

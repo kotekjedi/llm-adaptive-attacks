@@ -17,6 +17,7 @@ from config import (
     MIXTRAL_7B_PATH,
     PHI3_MINI_PATH,
     R2D2_PATH,
+    STARLING_PATH,
     TARGET_TEMP,
     TARGET_TOP_P,
     VICUNA_PATH,
@@ -83,7 +84,7 @@ class TargetLM:
                 if "gpt" in self.model_name:
                     full_prompts.append(conv.to_openai_api_messages())
                 # older models
-                elif "vicuna" in self.model_name or "llama2" in self.model_name:
+                elif any(model_name in self.model_name for model_name in ["llama2", "vicuna", "starling"]):
                     conv.append_message(conv.roles[1], None)
                     full_prompts.append(conv.get_prompt())
                 # newer models
@@ -127,14 +128,23 @@ def load_indiv_model(model_name, device=None):
     if "gpt" in model_name or "together" in model_name:
         lm = GPT(model_name)
     else:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            torch_dtype=torch.bfloat16,
-            device_map="cuda",
-            local_files_only=True,
-            trust_remote_code=True,
-        ).eval()
-
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                torch_dtype=torch.bfloat16,
+                device_map="cuda",
+                local_files_only=True,
+                trust_remote_code=True,
+            ).eval()
+        except Exception as e:
+            print(f"Failed to load model {model_name} from {model_path}: {e}")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                torch_dtype=torch.bfloat16,
+                device_map="cuda",
+                trust_remote_code=True,
+            ).eval()
+            
         tokenizer = AutoTokenizer.from_pretrained(
             model_path,
             use_fast=False,
@@ -149,6 +159,9 @@ def load_indiv_model(model_name, device=None):
             tokenizer.padding_side = "left"
         if "mistral" in model_path.lower() or "mixtral" in model_path.lower():
             tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+        if "starling" in model_path.lower():
+            tokenizer.pad_token = "<|pad_0|>"
             tokenizer.pad_token_id = tokenizer.eos_token_id
         if not tokenizer.pad_token:
             tokenizer.pad_token = tokenizer.eos_token
@@ -166,6 +179,7 @@ def get_model_path_and_template(model_name):
         "gpt-3.5-turbo": {"path": "gpt-3.5-turbo", "template": "gpt-3.5-turbo"},
         "gpt-3.5-turbo-1106": {"path": "gpt-3.5-turbo", "template": "gpt-3.5-turbo"},
         "vicuna": {"path": VICUNA_PATH, "template": "vicuna_v1.1"},
+        "starling": {"path": STARLING_PATH, "template": "starling-lm"},
         "llama2": {"path": LLAMA_7B_PATH, "template": "llama-2"},
         "llama2-7b": {"path": LLAMA_7B_PATH, "template": "llama-2"},
         "llama2-13b": {"path": LLAMA_13B_PATH, "template": "llama-2"},
