@@ -122,7 +122,7 @@ def early_stopping_condition(
 
 def load_harmbench(index):
     with open(
-        "/home/apanfilov/jailbreak_filter/llm-adaptive-attacks/harmful_behaviors/400_behaviors.csv",
+        "./harmful_behaviors/400_behaviors.csv",
         "r",
         encoding="utf-8",
     ) as f:
@@ -139,7 +139,7 @@ def load_harmbench(index):
     behavior_id = behavior_dict["BehaviorID"]
 
     with open(
-        "/home/apanfilov/jailbreak_filter/llm-adaptive-attacks/harmful_behaviors/400_behavior_to_target_simple.json",
+        "./harmful_behaviors/400_behavior_to_target_simple.json",
         "r",
         encoding="utf-8",
     ) as file:
