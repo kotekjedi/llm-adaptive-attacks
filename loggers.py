@@ -35,14 +35,16 @@ class WandBLogger:
             config=vars(args),
         )
         self.run_id = self.logger.id  # Store the run ID
+        self.run_path = self.logger.dir  # Store the run directory path
 
-    def log(self, dict):
-        self.logger.log(dict)
+    def log(self, log_dict):
+        self.logger.log(log_dict)
 
     def finish(self):
         self.logger.finish()
         # Sync the specific run after training
-        run_directory = os.path.join("wandb", "offline-run-logs", self.run_id)
-        subprocess.run(["wandb", "sync", run_directory])
+        path_wo_files = self.run_path.rsplit("/", 1)[0]
+        print(f"Syncing run ID {self.run_id} from path {path_wo_files}")
+        subprocess.run(["wandb", "sync", path_wo_files])
 
 
