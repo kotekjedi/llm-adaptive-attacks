@@ -502,7 +502,7 @@ if __name__ == "__main__":
         help="Row number of AdvBench, for logging purposes.",
     )
     parser.add_argument(
-        "--index_end",
+        "--index-end",
         type=int,
         default=-1,
         help="In case of batch processing. If -1 then only one row is processed.",
