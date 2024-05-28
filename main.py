@@ -502,7 +502,7 @@ if __name__ == "__main__":
         help="Row number of AdvBench, for logging purposes.",
     )
     parser.add_argument(
-        "--index-end",
+        "--step",
         type=int,
         default=-1,
         help="In case of batch processing. If -1 then only one row is processed.",
@@ -525,12 +525,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.index_end == -1:
+    # main(args)
+
+    if args.step == -1:
         main(args)
     
     else:
         start_index = args.index
-        end_index = args.index_end
-        for i in range(start_index, end_index):
+        for i in range(start_index, start_index + args.step):
             args.index = i
             main(args)
