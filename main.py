@@ -534,7 +534,7 @@ if __name__ == "__main__":
         start_index = args.index
         for i in range(start_index, start_index + args.step):
             # account for additional strings from Valentyn
-            if args.dataset == "harmbench" and args.index < 7:
+            if args.dataset == "harmbench" and i < 7:
                 continue
             args.index = i
             main(args)
