@@ -64,7 +64,7 @@ def main(args):
     args.target_str = target
     args.category = behavior_id
     args.goal = args.goal_modified
-    
+
     # Initialize models and logger
     targetLM = load_target_model(args)
     judgeLM = load_judge(args)
@@ -623,5 +623,9 @@ if __name__ == "__main__":
     else:
         start_index = args.index
         for i in range(start_index, start_index + args.step):
+            # account for additional strings from Valentyn
+            if args.dataset == "harmbench" and args.index < 7:
+                continue
+
             args.index = i
             main(args)

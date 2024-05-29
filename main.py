@@ -526,7 +526,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # main(args)
 
     if args.step == -1:
         main(args)
@@ -534,5 +533,8 @@ if __name__ == "__main__":
     else:
         start_index = args.index
         for i in range(start_index, start_index + args.step):
+            # account for additional strings from Valentyn
+            if args.dataset == "harmbench" and args.index < 7:
+                continue
             args.index = i
             main(args)
