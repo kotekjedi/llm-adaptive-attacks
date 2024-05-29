@@ -139,7 +139,7 @@ def load_harmbench(index):
     behavior_id = behavior_dict["BehaviorID"]
 
     with open(
-        "./harmful_behaviors/400_behavior_to_target_simple.json",
+        "./harmful_behaviors/400_behavior_to_target.json",
         "r",
         encoding="utf-8",
     ) as file:

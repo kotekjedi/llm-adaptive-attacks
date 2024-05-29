@@ -74,7 +74,7 @@ def main(args):
     )
 
     if not args.debug:
-        logger = WandBLogger(args, project_name="llm-rs-adaptive")
+        logger = WandBLogger(args, project_name="llm-rs-adaptive-2")
 
     orig_msg = get_universal_manual_prompt(
         args.prompt_template, args.target_str, args.goal_modified.lower()
@@ -623,9 +623,5 @@ if __name__ == "__main__":
     else:
         start_index = args.index
         for i in range(start_index, start_index + args.step):
-            # account for additional strings from Valentyn
-            if args.dataset == "harmbench" and i < 7:
-                continue
-
             args.index = i
             main(args)
