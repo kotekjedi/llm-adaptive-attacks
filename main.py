@@ -56,12 +56,13 @@ def main(args):
         behavior, behavior_id, target = load_harmbench(args.index)
     elif args.dataset == "advbench":
         behavior, behavior_id, target = load_advbench(args.index)
-    args.goal = behavior
+
     # if no rephrased goal is provided
     if args.goal_modified == "":
         args.goal_modified = behavior
     args.target_str = target
     args.category = behavior_id
+
 
     # Initialize models and logger
     targetLM = load_target_model(args)
