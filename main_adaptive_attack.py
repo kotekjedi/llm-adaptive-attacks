@@ -63,7 +63,8 @@ def main(args):
         args.goal_modified = behavior
     args.target_str = target
     args.category = behavior_id
-
+    args.goal = args.goal_modified
+    
     # Initialize models and logger
     targetLM = load_target_model(args)
     judgeLM = load_judge(args)
