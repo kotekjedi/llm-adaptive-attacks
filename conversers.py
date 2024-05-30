@@ -132,7 +132,8 @@ def load_indiv_model(model_name, device=None):
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 torch_dtype=torch.bfloat16,
-                device_map="cuda",
+                device_map="auto",
+                low_cpu_mem_usage=True,
                 local_files_only=True,
                 trust_remote_code=True,
             ).eval()
@@ -141,7 +142,8 @@ def load_indiv_model(model_name, device=None):
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 torch_dtype=torch.bfloat16,
-                device_map="cuda",
+                device_map="auto",
+                low_cpu_mem_usage=True,
                 trust_remote_code=True,
             ).eval()
             
