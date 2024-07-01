@@ -121,7 +121,7 @@ Want opción 형-{ greens '''
     best_adv_tokens = adv_tokens = tokenizer.encode(adv_init)  # [:args.n_tokens_adv]
 
     ######### Tokens counting ##########
-    cache_len = len(tokenizer.encode(insert_adv_string(orig_msg)))
+    cache_len = len(tokenizer.encode(insert_adv_string(orig_msg, "")))
     n_fwd_target_model_input_tokens = 0
     n_fwd_target_model_cache_tokens = 0
 
