@@ -70,7 +70,7 @@ def main(args):
     )
 
     if not args.debug:
-        logger = WandBLogger(args, project_name="llm-rs-2")
+        logger = WandBLogger(args, project_name="llm-rs-3")
 
     orig_msg = get_universal_manual_prompt(
         args.prompt_template, args.target_str, args.goal_modified.lower()
