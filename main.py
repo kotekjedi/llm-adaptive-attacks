@@ -122,12 +122,12 @@ Want opción 형-{ greens '''
 
     ######### Tokens counting ##########
     cache_len = len(tokenizer.encode(insert_adv_string(orig_msg, "")))
-    n_fwd_target_model_input_tokens = 0
+    n_fwd_target_model_input_tokens = cache_len
     n_fwd_target_model_cache_tokens = 0
 
-    n_target_model_output_tokens = 0
+    n_target_model_output_tokens = 1
 
-    n_target_model_fwd_passes = 0
+    n_target_model_fwd_passes = 1
 
     # only counts evaluation passes
     n_fwd_target_model_input_tokens_eval = 0
