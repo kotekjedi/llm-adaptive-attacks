@@ -149,7 +149,7 @@ def load_indiv_model(model_name, device=None):
             
         tokenizer = AutoTokenizer.from_pretrained(
             model_path,
-            use_fast=False,
+            use_fast=True,
         )
         print(f"DEVICE: {model.device}")
 
