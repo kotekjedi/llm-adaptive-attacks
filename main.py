@@ -264,8 +264,6 @@ Want opción 형-{ greens '''
             # apply the new adversarial suffix
             msg = insert_adv_string(orig_msg, adv)
 
-            number_of_fwd_queries += 1
-
         if not args.eval_only_rs and i_restart == 0:  # eval only if it's the first restart
             # the outputs of some LLMs are non-determinstic, thus we might need to do extra work to ensure that the final response starts from "Sure"
             for i in range(n_retry_final):
@@ -382,7 +380,6 @@ Want opción 형-{ greens '''
                 "n_fwd_target_model_cache_tokens_eval": n_fwd_target_model_cache_tokens_eval,
                 "n_target_model_output_tokens_eval": n_target_model_output_tokens_eval,
                 "n_queries": it,
-                "n_fwd_queries": number_of_fwd_queries,
                 "orig_msg": orig_msg,
                 "best_msg": best_msg,
                 "best_logprobs": best_logprobs,
