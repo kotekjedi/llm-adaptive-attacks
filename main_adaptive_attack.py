@@ -154,7 +154,7 @@ Want opción 형-{ greens '''
             break
         init_retries += 1
 
-        adv_init_tokens = jbFilter.adapt_string(
+        adv_init_tokens = jbFilter.adapt_string_old(
             adv_out_init,
             args.filter_window_size,
             "perplexity",
@@ -172,7 +172,7 @@ Want opción 형-{ greens '''
         )
     else:
         if not filter_passed:
-            adv_init_tokens = jbFilter.adapt_string(
+            adv_init_tokens = jbFilter.adapt_string_old(
                 insert_adv_string(orig_msg, adv_init),
                 args.filter_window_size,
                 "perplexity",
