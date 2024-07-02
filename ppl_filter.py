@@ -1,4 +1,5 @@
 import time
+from collections import Counter
 
 import dask.dataframe as dd
 import numpy as np
@@ -234,11 +235,11 @@ def calculate_metrics(
             bigram_prob / unigram_prob
             for bigram_prob, unigram_prob in zip(window_uncond_probs_2, window_uncond_probs_1)
         ]
-        
+
         total_log_prob = np.sum(np.log(window_cond_probs))
         total_log_prob += np.log(window_uncond_probs_1[0])
         # Calculate Perplexity and Entropy
-        perplexity = np.exp(- total_log_prob / len(window_bigrams))
+        perplexity = np.exp(-total_log_prob / len(window_bigrams))
         entropy_value = calculate_entropy(window_tokens)
 
         perplexities.append(perplexity)
