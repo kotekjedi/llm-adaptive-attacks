@@ -135,7 +135,7 @@ Want opción 형-{ greens '''
     if jbFilter.apply_filter(
         orig_msg,
         args.filter_window_size,
-        "perplexity",
+        "perplexities",
         args.filter_threshold,
     ):
         logger.log(
