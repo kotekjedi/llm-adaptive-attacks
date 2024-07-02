@@ -154,10 +154,10 @@ Want opción 형-{ greens '''
             break
         init_retries += 1
 
-        adv_init_tokens = jbFilter.check_adv_init(
+        adv_init_tokens = jbFilter.adapt_string(
             adv_out_init,
             args.filter_window_size,
-            "perplexities",
+            "perplexity",
             args.filter_threshold,
         )
         adv_init = jbFilter.tokenizer.decode(adv_init_tokens, add_special_tokens=False).replace(
@@ -167,15 +167,15 @@ Want opción 형-{ greens '''
         filter_passed = jbFilter.apply_filter(
             insert_adv_string(orig_msg, adv_init),
             args.filter_window_size,
-            "perplexities",
+            "perplexity",
             args.filter_threshold,
         )
     else:
         if not filter_passed:
-            adv_init_tokens = jbFilter.check_adv_init(
+            adv_init_tokens = jbFilter.adapt_string(
                 insert_adv_string(orig_msg, adv_init),
                 args.filter_window_size,
-                "perplexities",
+                "perplexity",
                 args.filter_threshold,
             )[-len(adv_init_tokens) :]
             adv_init = jbFilter.tokenizer.decode(adv_init_tokens, add_special_tokens=False).replace(
