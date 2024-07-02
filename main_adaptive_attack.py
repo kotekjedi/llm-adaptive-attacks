@@ -39,8 +39,8 @@ def main(args):
             "Warning: probably you want to set determinstic_jailbreak to False to leverage randomness more strongly for random restarts / reevaluations."
         )
     jbFilter = Filter(
-        unigram_path="df_gutenberg_unigrams_dict_normalized_hashed.parquet",
-        bigram_path="df_gutenberg_bigrams_dict_normalized_hashed.parquet",
+        unigram_path="df_gutenberg_unigrams_dict_normalized.parquet",
+        bigram_path="df_gutenberg_bigrams_dict_normalized.parquet",
     )
 
     substitution_set = string.digits + string.ascii_letters + string.punctuation + " "
