@@ -236,7 +236,7 @@ def calculate_metrics(
         ]
         
         total_log_prob = np.sum(np.log(window_cond_probs))
-        total_log_prob += np.log(unigram_probs[0])
+        total_log_prob += np.log(window_uncond_probs_1[0])
         # Calculate Perplexity and Entropy
         perplexity = np.exp(- total_log_prob / len(window_bigrams))
         entropy_value = calculate_entropy(window_tokens)
