@@ -132,7 +132,7 @@ Want opción 형-{ greens '''
     args.filter_threshold = -8660.747171101768
 
     # sanity check - original message should not be filtered out
-    if jbFilter.apply_filter(
+    if not jbFilter.apply_filter(
         orig_msg,
         args.filter_window_size,
         "perplexity",
@@ -164,7 +164,7 @@ Want opción 형-{ greens '''
             "<s>", ""
         )
 
-        filter_passed = not jbFilter.apply_filter(
+        filter_passed = jbFilter.apply_filter(
             insert_adv_string(orig_msg, adv_init),
             args.filter_window_size,
             "perplexities",
@@ -345,7 +345,7 @@ Want opción 형-{ greens '''
             number_of_fwd_queries += 1
 
             temp_msg = insert_adv_string(orig_msg, adv)
-            if not jbFilter.apply_filter(
+            if jbFilter.apply_filter(
                 temp_msg, args.filter_window_size, "perplexities", args.filter_threshold
             ):
                 msg = temp_msg
